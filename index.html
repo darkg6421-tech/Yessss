@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>🔐 Encrypted P2P Chat (Firebase)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0b141a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100dvh;
+      padding: 8px;
+    }
+    .phone {
+      width: 100%;
+      max-width: 420px;
+      height: 100dvh;
+      max-height: 800px;
+      background: #0b141a;
+      border-radius: 32px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #222;
+    }
+    .header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #1f2c33;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1f2c33;
+    }
+    .header h2 { font-weight: 600; font-size: 1.2rem; color: #e9edef; }
+    .status {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #2a373f;
+      color: #aebac1;
+    }
+    .leave-btn {
+      background: none;
+      border: 1px solid #54656f;
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+      color: #ff6b6b;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+      background: #0b141a;
+      display: flex;
+      flex-direction: column;
+    }
+    .msg-row { display: flex; margin-bottom: 8px; }
+    .msg-row.self { justify-content: flex-end; }
+    .msg-row.system { justify-content: center; }
+    .bubble {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      word-wrap: break-word;
+      background: #1f2c33;
+      color: #e9edef;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    .self .bubble { background: #005c4b; border-top-right-radius: 4px; }
+    .other .bubble { border-top-left-radius: 4px; }
+    .system .bubble {
+      background: #2a373f;
+      color: #aebac1;
+      font-size: 0.8rem;
+      padding: 6px 12px;
+      border-radius: 20px;
+      max-width: 90%;
+      text-align: center;
+    }
+    .msg-meta {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      font-size: 0.65rem;
+      color: #8696a0;
+    }
+    .self .msg-meta { justify-content: flex-end; }
+    .other .msg-meta { justify-content: flex-start; }
+    .status-icon { font-size: 0.7rem; }
+    .input-area {
+      padding: 12px 16px;
+      background: #1f2c33;
+      border-top: 1px solid #1f2c33;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background: #2a373f;
+      border-radius: 24px;
+      font-size: 0.95rem;
+      outline: none;
+      color: #e9edef;
+    }
+    .input-area input::placeholder { color: #8696a0; }
+    .input-area button {
+      background: none;
+      border: none;
+      color: #00a884;
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.1s;
+    }
+    .input-area button:active { background: #2a373f; }
+    .input-area button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .setup-panel {
+      padding: 30px 24px;
+      text-align: center;
+      background: #0b141a;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      color: #e9edef;
+    }
+    .setup-panel input {
+      width: 100%;
+      padding: 16px;
+      border: 1px solid #1f2c33;
+      background: #1f2c33;
+      border-radius: 16px;
+      font-size: 1rem;
+      margin: 16px 0;
+      text-align: center;
+      color: #e9edef;
+      outline: none;
+    }
+    .setup-panel button {
+      background: #00a884;
+      color: #0b141a;
+      border: none;
+      padding: 16px;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .note { margin-top: 20px; color: #8696a0; font-size: 0.8rem; }
+    .typing-indicator {
+      font-size: 0.75rem;
+      color: #8696a0;
+      margin-left: 8px;
+      margin-bottom: 4px;
+      min-height: 18px;
+    }
+    .error-toast {
+      background: #f15c6d;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      animation: fadeInOut 3s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, 10px); }
+      10% { opacity: 1; transform: translate(-50%, 0); }
+      90% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -10px); }
+    }
+    .room-link-box {
+      background: #1f2c33;
+      padding: 12px;
+      border-radius: 12px;
+      margin: 10px 0;
+      word-break: break-all;
+      font-family: monospace;
+      color: #00a884;
+    }
+  </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+<div class="phone">
+  <div class="header">
+    <h2>🔐 Secure Chat</h2>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span class="status" id="connStatus">⚪ Setup</span>
+      <button class="leave-btn" id="leaveBtn" style="display: none;">Leave</button>
+    </div>
+  </div>
+
+  <div id="chatPanel" style="display: none; flex:1; flex-direction:column; position: relative;">
+    <div class="messages" id="messageContainer"></div>
+    <div id="typingIndicator" class="typing-indicator"></div>
+    <div class="input-area">
+      <input type="text" id="msgInput" placeholder="Message (encrypted)" autocomplete="off" disabled>
+      <button id="sendBtn" disabled>➤</button>
+    </div>
+  </div>
+
+  <div id="setupPanel" class="setup-panel">
+    <h3>🔑 Create or Join Room</h3>
+    <p style="color:#aebac1;">Enter a room ID (or leave blank to create new)</p>
+    <input type="text" id="roomIdInput" placeholder="e.g. 550e8400-e29b-41d4-a716" maxlength="50">
+    <p style="color:#aebac1;">Room password (optional)</p>
+    <input type="password" id="roomPasswordInput" placeholder="Shared secret">
+    <button id="joinBtn">✨ Join / Create</button>
+    <button id="createNewBtn" style="margin-top:12px; background:#2a373f; color:#e9edef;">🔄 Generate New Room</button>
+    <div id="roomLinkDisplay" style="margin-top:20px;"></div>
+    <p class="note">🔒 End-to-end encrypted · 2 person max</p>
+  </div>
+</div>
+
+<script>
+  // ========== YOUR FIREBASE CONFIG ==========
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZKZ3csVRjenMnFW9n4EqMHcSbRfQUEOk",
+    authDomain: "tanmayy-45c42.firebaseapp.com",
+    databaseURL: "https://tanmayy-45c42-default-rtdb.firebaseio.com",
+    projectId: "tanmayy-45c42",
+    storageBucket: "tanmayy-45c42.firebasestorage.app",
+    messagingSenderId: "975339988066",
+    appId: "1:975339988066:web:a3adf00dc6c4963b841d3b"
+  };
+  // ===========================================
+
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+  // Enable offline persistence
+  database.goOffline(); // quick reset then go online
+  database.goOnline();
+
+  // ---------- Persistent User ID ----------
+  const STORAGE_KEY = 'secure_chat_uid';
+  let userId = localStorage.getItem(STORAGE_KEY);
+  if (!userId) {
+    userId = 'user-' + Math.random().toString(36).substr(2, 6);
+    localStorage.setItem(STORAGE_KEY, userId);
+  }
+
+  // ---------- Crypto Utilities ----------
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  async function deriveKey(password, salt) {
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: encoder.encode(salt), iterations: 100000, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encryptMessage(text, key) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encoder.encode(text)
+    );
+    return { iv: Array.from(iv), data: Array.from(new Uint8Array(encrypted)) };
+  }
+
+  async function decryptMessage(encryptedObj, key) {
+    const iv = new Uint8Array(encryptedObj.iv);
+    const data = new Uint8Array(encryptedObj.data);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      data
+    );
+    return decoder.decode(decrypted);
+  }
+
+  // ---------- State ----------
+  let currentRoom = null;
+  let encryptionKey = null;        // CryptoKey for AES-GCM
+  let roomPassword = null;         // plaintext password (for display)
+  let partnerConnected = false;
+  let partnerId = null;
+  let messagesRef = null;
+  let presenceRef = null;
+  let typingRef = null;
+  let roomPresenceRef = null;
+  let messagesListener = null;
+  let typingListener = null;
+  let connectedRef = null;
+  let systemMessageShown = false;
+
+  // UI Elements
+  const statusEl = document.getElementById('connStatus');
+  const setupPanel = document.getElementById('setupPanel');
+  const chatPanel = document.getElementById('chatPanel');
+  const msgContainer = document.getElementById('messageContainer');
+  const msgInput = document.getElementById('msgInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const roomIdInput = document.getElementById('roomIdInput');
+  const roomPasswordInput = document.getElementById('roomPasswordInput');
+  const joinBtn = document.getElementById('joinBtn');
+  const createNewBtn = document.getElementById('createNewBtn');
+  const roomLinkDisplay = document.getElementById('roomLinkDisplay');
+  const typingIndicator = document.getElementById('typingIndicator');
+  const leaveBtn = document.getElementById('leaveBtn');
+
+  // Helpers
+  function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.className = 'error-toast';
+    toast.textContent = msg;
+    chatPanel.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  function setStatus(text, bg = '#2a373f') {
+    statusEl.textContent = text;
+    statusEl.style.background = bg;
+  }
+
+  function setInputEnabled(enabled) {
+    msgInput.disabled = !enabled;
+    sendBtn.disabled = !enabled;
+  }
+
+  function addSystemMessage(text) {
+    const row = document.createElement('div');
+    row.className = 'msg-row system';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    row.appendChild(bubble);
+    msgContainer.appendChild(row);
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+  }
+
+  function addMessage(text, senderId, isSelf, timestamp, status = 'sent') {
+    const row = document.createElement('div');
+    row.className = `msg-row ${isSelf ? 'self' : 'other'}`;
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    meta.innerHTML = `<span>${timeStr}</span>`;
+    if (isSelf) {
+      const statusSpan = document.createElement('span');
+      statusSpan.className = 'status-icon';
+      statusSpan.textContent = status === 'sent' ? '✓' : '✓✓';
+      meta.appendChild(statusSpan);
+    }
+    bubble.appendChild(meta);
+    row.appendChild(bubble);
+    msgContainer.appendChild(row);
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+  }
+
+  // ---------- Room Management ----------
+  function generateRoomId() {
+    return crypto.randomUUID ? crypto.randomUUID() : 'xxxx-4xxx-yxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  async function createNewRoom() {
+    const roomId = generateRoomId();
+    roomIdInput.value = roomId;
+    roomPasswordInput.value = '';
+    roomLinkDisplay.innerHTML = `
+      <div class="room-link-box">
+        <strong>🔗 Share this link:</strong><br>
+        Room ID: ${roomId}<br>
+        ${roomPasswordInput.value ? 'Password: ' + roomPasswordInput.value : 'No password set'}
+      </div>
+    `;
+  }
+
+  createNewBtn.addEventListener('click', createNewRoom);
+
+  // ---------- Cleanup ----------
+  function cleanupListeners() {
+    if (presenceRef) presenceRef.remove();
+    if (typingRef) typingRef.remove();
+    if (roomPresenceRef) roomPresenceRef.off();
+    if (messagesListener && messagesRef) messagesRef.off('child_added', messagesListener);
+    if (typingListener) typingListener.off();
+    if (connectedRef) connectedRef.off();
+    presenceRef = typingRef = roomPresenceRef = messagesListener = typingListener = connectedRef = null;
+  }
+
+  function leaveRoom() {
+    if (!currentRoom) return;
+    cleanupListeners();
+    msgContainer.innerHTML = '';
+    typingIndicator.textContent = '';
+    currentRoom = null;
+    encryptionKey = null;
+    partnerConnected = false;
+    chatPanel.style.display = 'none';
+    setupPanel.style.display = 'flex';
+    leaveBtn.style.display = 'none';
+    setStatus('⚪ Setup');
+    setInputEnabled(false);
+    roomLinkDisplay.innerHTML = '';
+  }
+
+  // ---------- Join Room ----------
+  async function joinRoom(roomId, password) {
+    if (!roomId) roomId = generateRoomId();
+    const sanitized = roomId.trim().replace(/[.#$[\]]/g, '_').substring(0, 50);
+    if (!sanitized) return alert('Invalid room ID');
+
+    // Derive encryption key from roomId + password
+    const salt = sanitized; // using roomId as salt
+    const rawPassword = password || '';
+    roomPassword = rawPassword;
+    try {
+      encryptionKey = await deriveKey(rawPassword, salt);
+    } catch (e) {
+      alert('Failed to generate encryption key');
+      return;
+    }
+
+    if (currentRoom) cleanupListeners();
+    currentRoom = sanitized;
+    const roomPath = `secure_rooms/${currentRoom}`;
+    messagesRef = database.ref(`${roomPath}/messages`);
+    presenceRef = database.ref(`${roomPath}/presence/${userId}`);
+    typingRef = database.ref(`${roomPath}/typing/${userId}`);
+    roomPresenceRef = database.ref(`${roomPath}/presence`);
+
+    setStatus('🟡 Connecting...', '#3a4a52');
+    msgContainer.innerHTML = '';
+    systemMessageShown = false;
+    partnerConnected = false;
+    setInputEnabled(false);
+
+    // Connection monitoring
+    connectedRef = database.ref('.info/connected');
+    connectedRef.on('value', (snap) => {
+      if (snap.val() === true) {
+        presenceRef.set(true);
+        presenceRef.onDisconnect().remove();
+        typingRef.onDisconnect().remove();
+      }
+    });
+
+    // Partner presence
+    roomPresenceRef.on('value', (snap) => {
+      const users = snap.val() || {};
+      const otherUsers = Object.keys(users).filter(id => id !== userId);
+      const total = Object.keys(users).length;
+      if (total > 2) {
+        addSystemMessage('❌ Room full (max 2). Disconnecting...');
+        setStatus('🔴 Full', '#5c2b2b');
+        setTimeout(() => leaveRoom(), 1500);
+        return;
+      }
+      const wasConnected = partnerConnected;
+      partnerConnected = otherUsers.length > 0;
+      partnerId = otherUsers[0] || null;
+
+      if (partnerConnected) {
+        setStatus('🟢 Partner online', '#1b4d3e');
+        setInputEnabled(true);
+        if (!wasConnected) addSystemMessage('✨ Partner joined (encrypted session)');
+      } else {
+        setStatus('🟡 Waiting...', '#3a4a52');
+        setInputEnabled(false);
+        if (!systemMessageShown) {
+          addSystemMessage('⏳ Waiting for partner (share Room ID & password)');
+          systemMessageShown = true;
+        }
+      }
+      chatPanel.style.display = 'flex';
+      setupPanel.style.display = 'none';
+      leaveBtn.style.display = 'block';
+      // Display share info
+      roomLinkDisplay.innerHTML = `
+        <div class="room-link-box">
+          <strong>🔗 Share with partner:</strong><br>
+          Room ID: ${currentRoom}<br>
+          Password: ${rawPassword || '(none)'}
+        </div>
+      `;
+    });
+
+    // Typing indicator
+    const allTypingRef = database.ref(`${roomPath}/typing`);
+    typingListener = allTypingRef.on('value', (snap) => {
+      const typingUsers = snap.val() || {};
+      const isPartnerTyping = Object.entries(typingUsers).some(([id, val]) => id !== userId && val === true);
+      typingIndicator.textContent = isPartnerTyping ? '✍️ Partner is typing...' : '';
+    });
+
+    // Messages listener (decrypt on arrival)
+    messagesListener = messagesRef.limitToLast(100).on('child_added', async (snap) => {
+      const msg = snap.val();
+      const isSelf = msg.sender === userId;
+      let displayText = '[Encrypted message]';
+      try {
+        displayText = await decryptMessage(msg.encrypted, encryptionKey);
+      } catch (e) {
+        console.warn('Decryption failed', e);
+        displayText = '⚠️ Unable to decrypt';
+      }
+      addMessage(displayText, msg.sender, isSelf, msg.timestamp, 'delivered');
+    });
+
+    // Set up input enable/disable based on partner presence already handled above
+  }
+
+  // ---------- Send Message (Encrypted) ----------
+  async function sendMessage() {
+    const plaintext = msgInput.value.trim();
+    if (!plaintext || !currentRoom || !partnerConnected || !encryptionKey) return;
+    sendBtn.disabled = true;
+    msgInput.disabled = true;
+    try {
+      const encrypted = await encryptMessage(plaintext, encryptionKey);
+      const messageData = {
+        encrypted,
+        sender: userId,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      };
+      // Optimistic UI
+      addMessage(plaintext, userId, true, Date.now(), 'sent');
+      await messagesRef.push(messageData);
+      msgInput.value = '';
+      typingRef.set(false);
+    } catch (e) {
+      showToast('Encryption failed');
+      console.error(e);
+    } finally {
+      sendBtn.disabled = false;
+      msgInput.disabled = false;
+      msgInput.focus();
+    }
+  }
+
+  // Typing handling
+  let typingTimeout;
+  msgInput.addEventListener('input', () => {
+    if (!currentRoom || !partnerConnected) return;
+    typingRef.set(true);
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => typingRef.set(false), 1000);
+  });
+
+  // Event listeners
+  joinBtn.addEventListener('click', () => {
+    joinRoom(roomIdInput.value.trim(), roomPasswordInput.value);
+  });
+  sendBtn.addEventListener('click', sendMessage);
+  msgInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+  leaveBtn.addEventListener('click', leaveRoom);
+
+  window.addEventListener('beforeunload', () => {
+    if (presenceRef) presenceRef.remove();
+    if (typingRef) typingRef.remove();
+  });
+
+  // Auto-generate a room on first load
+  createNewRoom();
+</script>
+</body>
+</html>
